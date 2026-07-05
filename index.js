@@ -7,6 +7,7 @@ import fs from "fs";
 
 import { config } from "./config.js";
 import { loadPlugins } from "./pluginLoader.js";
+import { pasaFiltros } from "./middlewares.js";
 
 const {
   default: makeWASocket,
