@@ -23,7 +23,7 @@ export default {
     });
 
     let texto = `╭─❀ *${config.botName.toUpperCase()}* ❀─╮\n`;
-    texto += `│ 🧵 Creador: *${config.creator}*\n`;
+    texto += `│ 👑 Creador: *${config.creator}*\n`;
     texto += `│ 🕐 ${fecha}\n`;
     texto += `╰────────────────╯\n`;
 
