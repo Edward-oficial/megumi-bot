@@ -7,7 +7,7 @@ import fs from "fs";
 
 import { config } from "./config.js";
 import { loadPlugins } from "./pluginLoader.js";
-import { pasaFiltros } from "./middlewares.js";
+import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
 
 const {
   default: makeWASocket,
@@ -149,6 +149,36 @@ async function startMegumi() {
 
   sock.ev.on("creds.update", saveCreds);
 
+  // ── Bienvenida y despedida ────────────────────────────────────
+  sock.ev.on("group-participants.update", async (update) => {
+    const { id: chatId, participants, action } = update;
+
+    try {
+      const metadata = await sock.groupMetadata(chatId);
+      const nombreGrupo = metadata.subject;
+
+      for (const participante of participants) {
+        const numero = participante.split("@")[0].split(":")[0];
+
+        if (action === "add") {
+          await sock.sendMessage(chatId, {
+            text:
+              `🌸 ¡Bienvenido/a @${numero} a *${nombreGrupo}*!\n` +
+              `Esperamos que la pases increíble por aquí. ❀`,
+            mentions: [participante],
+          });
+        } else if (action === "remove") {
+          await sock.sendMessage(chatId, {
+            text: `👋 @${numero} salió de *${nombreGrupo}*. ¡Hasta pronto!`,
+            mentions: [participante],
+          });
+        }
+      }
+    } catch (err) {
+      console.log(chalk.red("❌ Error en bienvenida/despedida:"), err);
+    }
+  });
+
   // ── Manejo de mensajes (sin prefijo) ─────────────────────────
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
@@ -170,6 +200,38 @@ async function startMegumi() {
 
     const numeroLimpio = sender.split("@")[0];
     console.log(chalk.blueBright(`📩 ${numeroLimpio}: `) + body);
+
+    // ── Antilink ────────────────────────────────────────────────
+    const esGrupo = chatId.endsWith("@g.us");
+    const contieneLink =
+      /(https?:\/\/|chat\.whatsapp\.com|wa\.me\/|www\.)/i.test(body);
+
+    if (esGrupo && contieneLink) {
+      const numeroBase = numeroLimpio.split(":")[0];
+      const esDueño = numeroBase === config.ownerNumber;
+      let esAdmin = false;
+
+      if (!esDueño) {
+        try {
+          esAdmin = await esAdminDeGrupo(sock, chatId, sender);
+        } catch (_) {}
+      }
+
+      if (!esDueño && !esAdmin) {
+        try {
+          await sock.sendMessage(chatId, { delete: msg.key });
+        } catch (_) {
+          // Si el bot no es admin, no podrá borrar, pero seguimos con el aviso.
+        }
+
+        await sock.sendMessage(chatId, {
+          text: `🚫 @${numeroBase} no se permiten enlaces en este grupo.`,
+          mentions: [sender],
+        });
+
+        return;
+      }
+    }
 
     const textoLower = body.trim().toLowerCase();
     const primeraPalabra = textoLower.split(/\s+/)[0];
