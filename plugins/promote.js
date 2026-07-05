@@ -7,32 +7,46 @@ export default {
   requiereBotAdmin: true,
 
   run: async (sock, msg, args, context) => {
-    const { chatId, participantes } = context;
+    const { chatId } = context;
 
-    let usuario;
+    let numero = "";
 
     if (msg.message?.extendedTextMessage?.contextInfo?.mentionedJid?.length) {
-      usuario = msg.message.extendedTextMessage.contextInfo.mentionedJid[0];
+      numero = msg.message.extendedTextMessage.contextInfo.mentionedJid[0]
+        .split("@")[0]
+        .split(":")[0]
+        .replace(/\D/g, "");
     } else if (msg.message?.extendedTextMessage?.contextInfo?.participant) {
-      usuario = msg.message.extendedTextMessage.contextInfo.participant;
+      numero = msg.message.extendedTextMessage.contextInfo.participant
+        .split("@")[0]
+        .split(":")[0]
+        .replace(/\D/g, "");
     } else if (args[0]) {
-      usuario = args[0].replace(/\D/g, "") + "@s.whatsapp.net";
+      numero = args[0].replace(/\D/g, "");
     }
 
-    if (!usuario) {
-      return sock.sendMessage(
+    if (!numero) {
+      return await sock.sendMessage(
         chatId,
         {
-          text: "❀ Menciona, responde el mensaje o escribe el número del usuario que deseas ascender.",
+          text: "❀ Menciona, responde un mensaje o escribe el número del usuario.",
         },
         { quoted: msg }
       );
     }
 
-    const miembro = participantes.find((p) => p.id === usuario);
+    const metadata = await sock.groupMetadata(chatId);
 
-    if (!miembro) {
-      return sock.sendMessage(
+    const participante = metadata.participants.find((p) => {
+      const pNum = String(p.id)
+        .split("@")[0]
+        .split(":")[0]
+        .replace(/\D/g, "");
+      return pNum === numero;
+    });
+
+    if (!participante) {
+      return await sock.sendMessage(
         chatId,
         {
           text: "❌ Ese usuario no pertenece al grupo.",
@@ -41,8 +55,8 @@ export default {
       );
     }
 
-    if (miembro.admin) {
-      return sock.sendMessage(
+    if (participante.admin) {
+      return await sock.sendMessage(
         chatId,
         {
           text: "⚠️ Ese usuario ya es administrador.",
@@ -52,21 +66,27 @@ export default {
     }
 
     try {
-      await sock.groupParticipantsUpdate(chatId, [usuario], "promote");
+      await sock.groupParticipantsUpdate(
+        chatId,
+        [participante.id], // Puede ser @lid o @s.whatsapp.net
+        "promote"
+      );
 
       await sock.sendMessage(
         chatId,
         {
-          text: `✅ @${usuario.split("@")[0]} ha sido ascendido a administrador.`,
-          mentions: [usuario],
+          text: `✅ @${numero} ahora es administrador.`,
+          mentions: [participante.id],
         },
         { quoted: msg }
       );
-    } catch {
+    } catch (e) {
+      console.log(e);
+
       await sock.sendMessage(
         chatId,
         {
-          text: "❌ No pude ascender al usuario. Verifica que el bot tenga permisos de administrador.",
+          text: "❌ No pude ascender al usuario.",
         },
         { quoted: msg }
       );
