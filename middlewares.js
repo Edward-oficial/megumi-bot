@@ -31,93 +31,91 @@ export function registrarUsuario(numero, datos) {
   guardarUsuarios(usuarios);
 }
 
-export function obtenerUsuario(numero) {
-  const usuarios = cargarUsuarios();
-  return usuarios[numero] || null;
-}
-
 export function esOwner(numero) {
-  return numero === config.ownerNumber;
+  return config.ownerNumber?.includes(numero);
 }
 
 export async function pasaFiltros(sock, msg, plugin, context) {
   const { chatId, sender } = context;
+
   const numero = sender.split("@")[0];
   const esGrupo = chatId.endsWith("@g.us");
 
-  if (plugin.ownerOnly && !esOwner(numero)) {
-    await sock.sendMessage(
-      chatId,
-      { text: "❀ Este comando es exclusivo del *creador* del bot." },
-      { quoted: msg }
-    );
+  const metadata = esGrupo ? await sock.groupMetadata(chatId).catch(() => null) : null;
+
+  const participantes = metadata?.participants || [];
+
+  const senderData = participantes.find(p => p.id === sender);
+
+  const isAdmin =
+    senderData?.admin === "admin" ||
+    senderData?.admin === "superadmin";
+
+  const botId = sock.user?.id;
+  const botData = participantes.find(p => p.id === botId);
+
+  const isBotAdmin =
+    botData?.admin === "admin" ||
+    botData?.admin === "superadmin";
+
+  const owner = esOwner(numero);
+
+  // OWNER
+  if (plugin.ownerOnly && !owner) {
+    await sock.sendMessage(chatId, {
+      text: "❀ Este comando es solo del *creador* del bot.",
+    }, { quoted: msg });
     return false;
   }
 
+  // GROUP ONLY
   if (plugin.groupOnly && !esGrupo) {
-    await sock.sendMessage(
-      chatId,
-      { text: "❀ Este comando solo se puede usar *dentro de un grupo*." },
-      { quoted: msg }
-    );
+    await sock.sendMessage(chatId, {
+      text: "❀ Este comando solo funciona en *grupos*.",
+    }, { quoted: msg });
     return false;
   }
 
+  // PRIVATE ONLY
   if (plugin.privateOnly && esGrupo) {
-    await sock.sendMessage(
-      chatId,
-      { text: "❀ Este comando solo se puede usar *en privado*, no en grupos." },
-      { quoted: msg }
-    );
+    await sock.sendMessage(chatId, {
+      text: "❀ Este comando solo funciona en *privado*.",
+    }, { quoted: msg });
     return false;
   }
 
+  // ADMIN ONLY
   if (plugin.adminOnly) {
     if (!esGrupo) {
-      await sock.sendMessage(
-        chatId,
-        { text: "❀ Este comando solo se puede usar *dentro de un grupo*." },
-        { quoted: msg }
-      );
+      await sock.sendMessage(chatId, {
+        text: "❀ Este comando solo funciona en grupos.",
+      }, { quoted: msg });
       return false;
     }
 
-    if (!esOwner(numero)) {
-      try {
-        const metadata = await sock.groupMetadata(chatId);
-        const participante = metadata.participants.find((p) => p.id === sender);
-        const esAdmin =
-          participante?.admin === "admin" || participante?.admin === "superadmin";
+    if (!owner && !isAdmin) {
+      await sock.sendMessage(chatId, {
+        text: "❀ Solo *admins* pueden usar este comando.",
+      }, { quoted: msg });
+      return false;
+    }
 
-        if (!esAdmin) {
-          await sock.sendMessage(
-            chatId,
-            { text: "❀ Este comando es solo para *administradores* del grupo." },
-            { quoted: msg }
-          );
-          return false;
-        }
-      } catch (err) {
-        await sock.sendMessage(
-          chatId,
-          { text: "❌ No pude verificar los admins del grupo, intenta de nuevo." },
-          { quoted: msg }
-        );
-        return false;
-      }
+    if (!isBotAdmin) {
+      await sock.sendMessage(chatId, {
+        text: "❌ Necesito ser *admin* para ejecutar esto.",
+      }, { quoted: msg });
+      return false;
     }
   }
 
-  if (!plugin.noRegister && !esOwner(numero) && !estaRegistrado(numero)) {
-    await sock.sendMessage(
-      chatId,
-      {
-        text:
-          "❀ Necesitas *registrarte* antes de usar comandos.\n\n" +
-          "Escribe: *register Tu Nombre,Tu Edad*\nEjemplo: register Edward,20",
-      },
-      { quoted: msg }
-    );
+  // REGISTER
+  if (!plugin.noRegister && !owner && !estaRegistrado(numero)) {
+    await sock.sendMessage(chatId, {
+      text:
+        "❀ Necesitas registrarte.\n\n" +
+        "Ejemplo:\n*register Edward,20*",
+    }, { quoted: msg });
+
     return false;
   }
 
