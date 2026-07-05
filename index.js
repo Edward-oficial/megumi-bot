@@ -8,6 +8,7 @@ import fs from "fs";
 import { config } from "./config.js";
 import { loadPlugins } from "./pluginLoader.js";
 import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
+import { obtenerConfigGrupo } from "./groupSettings.js";
 
 const {
   default: makeWASocket,
@@ -154,6 +155,9 @@ async function startMegumi() {
     const { id: chatId, participants, action } = update;
 
     try {
+      const configGrupo = obtenerConfigGrupo(chatId);
+      if (!configGrupo.welcome) return;
+
       const metadata = await sock.groupMetadata(chatId);
       const nombreGrupo = metadata.subject;
 
@@ -207,29 +211,33 @@ async function startMegumi() {
       /(https?:\/\/|chat\.whatsapp\.com|wa\.me\/|www\.)/i.test(body);
 
     if (esGrupo && contieneLink) {
-      const numeroBase = numeroLimpio.split(":")[0];
-      const esDueño = numeroBase === config.ownerNumber;
-      let esAdmin = false;
+      const configGrupo = obtenerConfigGrupo(chatId);
 
-      if (!esDueño) {
-        try {
-          esAdmin = await esAdminDeGrupo(sock, chatId, sender);
-        } catch (_) {}
-      }
+      if (configGrupo.antilink) {
+        const numeroBase = numeroLimpio.split(":")[0];
+        const esDueño = numeroBase === config.ownerNumber;
+        let esAdmin = false;
 
-      if (!esDueño && !esAdmin) {
-        try {
-          await sock.sendMessage(chatId, { delete: msg.key });
-        } catch (_) {
-          // Si el bot no es admin, no podrá borrar, pero seguimos con el aviso.
+        if (!esDueño) {
+          try {
+            esAdmin = await esAdminDeGrupo(sock, chatId, sender);
+          } catch (_) {}
         }
 
-        await sock.sendMessage(chatId, {
-          text: `🚫 @${numeroBase} no se permiten enlaces en este grupo.`,
-          mentions: [sender],
-        });
+        if (!esDueño && !esAdmin) {
+          try {
+            await sock.sendMessage(chatId, { delete: msg.key });
+          } catch (_) {
+            // Si el bot no es admin, no podrá borrar, pero seguimos con el aviso.
+          }
 
-        return;
+          await sock.sendMessage(chatId, {
+            text: `🚫 @${numeroBase} no se permiten enlaces en este grupo.`,
+            mentions: [sender],
+          });
+
+          return;
+        }
       }
     }
 
