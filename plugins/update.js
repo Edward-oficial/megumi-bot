@@ -6,7 +6,7 @@ const execute = util.promisify(exec);
 export default {
   command: ["update", "gitpull", "pull"],
   category: "Owner",
-  description: "Actualiza el bot ejecutando git pull.",
+  description: "Actualiza el bot",
   owner: true,
 
   run: async (sock, msg, args, context) => {
