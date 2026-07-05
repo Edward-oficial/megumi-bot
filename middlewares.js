@@ -8,58 +8,83 @@ export function esOwner(numero) {
  * Verifica si el propio bot es administrador del grupo.
  */
 export async function botEsAdmin(sock, chatId) {
+  const botNumero = String(sock.user?.id || "").split("@")[0].split(":")[0].replace(/\D/g, "");
   const metadata = await sock.groupMetadata(chatId);
-  const botNumero = sock.user.id.split(":")[0];
-  const participante = metadata.participants.find((p) =>
-    p.id.startsWith(botNumero)
-  );
-  return (
-    participante?.admin === "admin" || participante?.admin === "superadmin"
-  );
+  const participantes = metadata?.participants || [];
+
+  const participante = participantes.find((p) => {
+    const pId = String(p.id || "");
+    const pNum = pId.split("@")[0].split(":")[0].replace(/\D/g, "");
+    return botNumero && pNum && botNumero === pNum;
+  });
+
+  return Boolean(participante?.admin);
 }
 
 /**
  * Determina si un número (sender) es administrador del grupo indicado.
- * Reutilizable desde pasaFiltros y desde el antilink en index.js.
+ * Basado en la lógica robusta "checkIsGroupAdmin" de Maneki-neko:
+ * intenta varias formas de emparejar al participante antes de rendirse.
  */
 export async function esAdminDeGrupo(sock, chatId, sender) {
-  const numero = sender.split("@")[0].split(":")[0];
-  const metadata = await sock.groupMetadata(chatId);
+  const senderNum = String(sender || "").split("@")[0].split(":")[0].replace(/\D/g, "");
 
-  let numeroLid = null;
+  let metadata;
   try {
-    const lidJid = await sock.signalRepository?.lidMapping?.getLIDForPN(sender);
-    if (lidJid) numeroLid = lidJid.split("@")[0].split(":")[0];
-  } catch (_) {}
+    metadata = await sock.groupMetadata(chatId);
+  } catch (_) {
+    return false;
+  }
 
-  const participante = metadata.participants.find((p) => {
-    const idLimpio = p.id.split("@")[0].split(":")[0];
-    return idLimpio === numero || (numeroLid && idLimpio === numeroLid);
+  const participantes = metadata?.participants || [];
+
+  const porId = participantes.find((p) => {
+    const pId = String(p.id || "");
+    const pNum = pId.split("@")[0].split(":")[0].replace(/\D/g, "");
+    return pId === sender || (senderNum && pNum && senderNum === pNum);
   });
+  if (porId) return Boolean(porId.admin);
 
-  return (
-    participante?.admin === "admin" || participante?.admin === "superadmin"
-  );
+  const porCampoExtra = participantes.find((p) => {
+    const candidatos = [p.jid, p.phoneNumber, p.phone, p.pn, p.lid]
+      .filter(Boolean)
+      .map((v) => String(v).split("@")[0].split(":")[0].replace(/\D/g, ""));
+    return senderNum && candidatos.includes(senderNum);
+  });
+  if (porCampoExtra) return Boolean(porCampoExtra.admin);
+
+  const todosSonLid =
+    participantes.length > 0 &&
+    participantes.every((p) => String(p.id || "").endsWith("@lid"));
+
+  if (todosSonLid) {
+    try {
+      const store = sock.store || sock.authState?.store;
+      const contactos = store?.contacts || sock.contacts || {};
+
+      for (const [lidKey, contacto] of Object.entries(contactos)) {
+        const cNum = String(contacto?.id || contacto?.jid || lidKey || "")
+          .split("@")[0]
+          .split(":")[0]
+          .replace(/\D/g, "");
+
+        if (senderNum && cNum && cNum === senderNum) {
+          const lidId = String(lidKey).includes("@") ? lidKey : `${lidKey}@lid`;
+          const porStoreLid = participantes.find((p) => String(p.id || "") === lidId);
+          if (porStoreLid) return Boolean(porStoreLid.admin);
+        }
+      }
+    } catch (_) {}
+  }
+
+  return false;
 }
 
-/**
- * Corre todos los filtros/detectores antes de ejecutar un plugin.
- * Cada plugin puede declarar estas propiedades opcionales:
- *   ownerOnly: true         -> solo el creador puede usarlo
- *   groupOnly: true         -> solo funciona dentro de grupos
- *   privateOnly: true       -> solo funciona en chat privado
- *   adminOnly: true         -> solo admins del grupo (el owner del bot siempre pasa)
- *   requiereBotAdmin: true  -> el bot debe ser admin del grupo
- *
- * Retorna true si puede continuar, false si fue bloqueado
- * (el aviso correspondiente ya se envió al chat).
- */
 export async function pasaFiltros(sock, msg, plugin, context) {
   const { chatId, sender } = context;
   const numero = sender.split("@")[0].split(":")[0];
   const esGrupo = chatId.endsWith("@g.us");
 
-  // 1. Comando exclusivo del owner
   if (plugin.ownerOnly && !esOwner(numero)) {
     await sock.sendMessage(
       chatId,
@@ -69,7 +94,6 @@ export async function pasaFiltros(sock, msg, plugin, context) {
     return false;
   }
 
-  // 2. Comando solo para grupos
   if (plugin.groupOnly && !esGrupo) {
     await sock.sendMessage(
       chatId,
@@ -79,7 +103,6 @@ export async function pasaFiltros(sock, msg, plugin, context) {
     return false;
   }
 
-  // 3. Comando solo para chat privado
   if (plugin.privateOnly && esGrupo) {
     await sock.sendMessage(
       chatId,
@@ -89,7 +112,6 @@ export async function pasaFiltros(sock, msg, plugin, context) {
     return false;
   }
 
-  // 4. Comando exclusivo de administradores del grupo
   if (plugin.adminOnly) {
     if (!esGrupo) {
       await sock.sendMessage(
@@ -100,7 +122,6 @@ export async function pasaFiltros(sock, msg, plugin, context) {
       return false;
     }
 
-    // El owner del bot siempre pasa, aunque no sea admin del grupo
     if (!esOwner(numero)) {
       try {
         const esAdmin = await esAdminDeGrupo(sock, chatId, sender);
@@ -124,7 +145,6 @@ export async function pasaFiltros(sock, msg, plugin, context) {
     }
   }
 
-  // 5. El bot debe ser admin del grupo para ejecutar el comando
   if (plugin.requiereBotAdmin && esGrupo) {
     try {
       const botAdmin = await botEsAdmin(sock, chatId);
