@@ -27,6 +27,7 @@ const question = (text) =>
   new Promise((resolve) => rl.question(text, resolve));
 
 let plugins = [];
+const groupMetadataCache = new Map();
 
 async function startMegumi() {
   console.log(
@@ -55,9 +56,42 @@ async function startMegumi() {
     browser: Browsers.ubuntu("Chrome"),
     logger: pino({ level: "silent" }),
     syncFullHistory: false,
+    cachedGroupMetadata: async (jid) => groupMetadataCache.get(jid),
   });
 
-  // ── Newsletter global en todos los mensajes enviados ─────────
+  async function actualizarCacheGrupo(chatId) {
+    try {
+      const metadata = await sock.groupMetadata(chatId);
+      groupMetadataCache.set(chatId, metadata);
+      return metadata;
+    } catch (err) {
+      console.log(chalk.red("❌ Error actualizando caché del grupo:"), err);
+      return null;
+    }
+  }
+
+  sock.ev.on("groups.update", async ([event]) => {
+    if (event?.id) await actualizarCacheGrupo(event.id);
+  });
+
+  sock.contacts = {};
+
+  sock.ev.on("contacts.upsert", (contactos) => {
+    for (const contacto of contactos) {
+      sock.contacts[contacto.id] = contacto;
+    }
+  });
+
+  sock.ev.on("contacts.update", (actualizaciones) => {
+    for (const act of actualizaciones) {
+      if (sock.contacts[act.id]) {
+        Object.assign(sock.contacts[act.id], act);
+      } else {
+        sock.contacts[act.id] = act;
+      }
+    }
+  });
+
   const enviarOriginal = sock.sendMessage.bind(sock);
   sock.sendMessage = (jid, content, options = {}) => {
     const newsletterContext = {
@@ -81,7 +115,6 @@ async function startMegumi() {
     return enviarOriginal(jid, contentConContexto, options);
   };
 
-  // ── Selección de método de vinculación ──────────────────────
   if (usePairingCode) {
     const metodo = await question(
       chalk.yellow(
@@ -122,7 +155,6 @@ async function startMegumi() {
     }
   }
 
-  // ── Eventos de conexión ──────────────────────────────────────
   sock.ev.on("connection.update", (update) => {
     const { connection, lastDisconnect } = update;
 
@@ -145,20 +177,37 @@ async function startMegumi() {
           `\n🌸 ${config.botName} conectada correctamente. ¡Lista para trabajar!\n`
         )
       );
+
+      (async () => {
+        try {
+          const todosLosGrupos = await sock.groupFetchAllParticipating();
+          for (const chatId of Object.keys(todosLosGrupos)) {
+            groupMetadataCache.set(chatId, todosLosGrupos[chatId]);
+          }
+          console.log(
+            chalk.magenta(
+              `📦 Caché de ${Object.keys(todosLosGrupos).length} grupo(s) cargada.`
+            )
+          );
+        } catch (err) {
+          console.log(chalk.red("❌ Error precargando grupos:"), err);
+        }
+      })();
     }
   });
 
   sock.ev.on("creds.update", saveCreds);
 
-  // ── Bienvenida y despedida ────────────────────────────────────
   sock.ev.on("group-participants.update", async (update) => {
     const { id: chatId, participants, action } = update;
 
     try {
       const configGrupo = obtenerConfigGrupo(chatId);
+
+      const metadata = await actualizarCacheGrupo(chatId);
+      if (!metadata) return;
       if (!configGrupo.welcome) return;
 
-      const metadata = await sock.groupMetadata(chatId);
       const nombreGrupo = metadata.subject;
 
       for (const participante of participants) {
@@ -183,7 +232,6 @@ async function startMegumi() {
     }
   });
 
-  // ── Manejo de mensajes (sin prefijo) ─────────────────────────
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
 
@@ -205,7 +253,6 @@ async function startMegumi() {
     const numeroLimpio = sender.split("@")[0];
     console.log(chalk.blueBright(`📩 ${numeroLimpio}: `) + body);
 
-    // ── Antilink ────────────────────────────────────────────────
     const esGrupo = chatId.endsWith("@g.us");
     const contieneLink =
       /(https?:\/\/|chat\.whatsapp\.com|wa\.me\/|www\.)/i.test(body);
@@ -227,9 +274,7 @@ async function startMegumi() {
         if (!esDueño && !esAdmin) {
           try {
             await sock.sendMessage(chatId, { delete: msg.key });
-          } catch (_) {
-            // Si el bot no es admin, no podrá borrar, pero seguimos con el aviso.
-          }
+          } catch (_) {}
 
           await sock.sendMessage(chatId, {
             text: `🚫 @${numeroBase} no se permiten enlaces en este grupo.`,
