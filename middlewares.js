@@ -19,6 +19,30 @@ export async function botEsAdmin(sock, chatId) {
 }
 
 /**
+ * Determina si un número (sender) es administrador del grupo indicado.
+ * Reutilizable desde pasaFiltros y desde el antilink en index.js.
+ */
+export async function esAdminDeGrupo(sock, chatId, sender) {
+  const numero = sender.split("@")[0].split(":")[0];
+  const metadata = await sock.groupMetadata(chatId);
+
+  let numeroLid = null;
+  try {
+    const lidJid = await sock.signalRepository?.lidMapping?.getLIDForPN(sender);
+    if (lidJid) numeroLid = lidJid.split("@")[0].split(":")[0];
+  } catch (_) {}
+
+  const participante = metadata.participants.find((p) => {
+    const idLimpio = p.id.split("@")[0].split(":")[0];
+    return idLimpio === numero || (numeroLid && idLimpio === numeroLid);
+  });
+
+  return (
+    participante?.admin === "admin" || participante?.admin === "superadmin"
+  );
+}
+
+/**
  * Corre todos los filtros/detectores antes de ejecutar un plugin.
  * Cada plugin puede declarar estas propiedades opcionales:
  *   ownerOnly: true         -> solo el creador puede usarlo
@@ -76,25 +100,10 @@ export async function pasaFiltros(sock, msg, plugin, context) {
       return false;
     }
 
+    // El owner del bot siempre pasa, aunque no sea admin del grupo
     if (!esOwner(numero)) {
       try {
-        const metadata = await sock.groupMetadata(chatId);
-
-        let numeroLid = null;
-        try {
-          const lidJid = await sock.signalRepository?.lidMapping?.getLIDForPN(
-            sender
-          );
-          if (lidJid) numeroLid = lidJid.split("@")[0].split(":")[0];
-        } catch (_) {}
-
-        const participante = metadata.participants.find((p) => {
-          const idLimpio = p.id.split("@")[0].split(":")[0];
-          return idLimpio === numero || (numeroLid && idLimpio === numeroLid);
-        });
-
-        const esAdmin =
-          participante?.admin === "admin" || participante?.admin === "superadmin";
+        const esAdmin = await esAdminDeGrupo(sock, chatId, sender);
 
         if (!esAdmin) {
           await sock.sendMessage(
@@ -115,7 +124,7 @@ export async function pasaFiltros(sock, msg, plugin, context) {
     }
   }
 
-  // 5. El bot debe ser admin del grupo
+  // 5. El bot debe ser admin del grupo para ejecutar el comando
   if (plugin.requiereBotAdmin && esGrupo) {
     try {
       const botAdmin = await botEsAdmin(sock, chatId);
