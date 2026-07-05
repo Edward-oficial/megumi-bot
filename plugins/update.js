@@ -7,7 +7,7 @@ export default {
   command: ["update", "gitpull", "pull"],
   category: "Owner",
   description: "Actualiza el bot ejecutando git pull.",
-  ownerOnly: true,
+  owner: true,
 
   run: async (sock, msg, args, context) => {
     const { chatId } = context;
