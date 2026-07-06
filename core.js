@@ -24,6 +24,7 @@ export async function crearBot({
   numeroParaPairing = null,
   onPairingCode = null,
   onReady = null,
+  isSubBot = false, // ← NUEVO: identificar si es sub-bot
 }) {
   const groupMetadataCache = new Map();
 
@@ -115,6 +116,7 @@ export async function crearBot({
           numeroParaPairing,
           onPairingCode,
           onReady,
+          isSubBot,
         });
       }
     } else if (connection === "open") {
@@ -135,38 +137,41 @@ export async function crearBot({
 
   sock.ev.on("creds.update", saveCreds);
 
-  sock.ev.on("group-participants.update", async (update) => {
-    const { id: chatId, participants, action } = update;
+  // Solo activar bienvenidas/despedidas si NO es sub-bot
+  if (!isSubBot) {
+    sock.ev.on("group-participants.update", async (update) => {
+      const { id: chatId, participants, action } = update;
 
-    try {
-      const configGrupo = obtenerConfigGrupo(chatId);
-      const metadata = await actualizarCacheGrupo(chatId);
-      if (!metadata) return;
-      if (!configGrupo.welcome) return;
+      try {
+        const configGrupo = obtenerConfigGrupo(chatId);
+        const metadata = await actualizarCacheGrupo(chatId);
+        if (!metadata) return;
+        if (!configGrupo.welcome) return;
 
-      const nombreGrupo = metadata.subject;
+        const nombreGrupo = metadata.subject;
 
-      for (const participante of participants) {
-        const numero = participante.split("@")[0].split(":")[0];
+        for (const participante of participants) {
+          const numero = participante.split("@")[0].split(":")[0];
 
-        if (action === "add") {
-          await sock.sendMessage(chatId, {
-            text:
-              `🌑 ¡Bienvenido/a @${numero} a *${nombreGrupo}*!\n` +
-              `Esperamos que la pases increíble por aquí.`,
-            mentions: [participante],
-          });
-        } else if (action === "remove") {
-          await sock.sendMessage(chatId, {
-            text: `👋 @${numero} salió de *${nombreGrupo}*. ¡Hasta pronto!`,
-            mentions: [participante],
-          });
+          if (action === "add") {
+            await sock.sendMessage(chatId, {
+              text:
+                `🌑 ¡Bienvenido/a @${numero} a *${nombreGrupo}*!\n` +
+                `Esperamos que la pases increíble por aquí.`,
+              mentions: [participante],
+            });
+          } else if (action === "remove") {
+            await sock.sendMessage(chatId, {
+              text: `👋 @${numero} salió de *${nombreGrupo}*. ¡Hasta pronto!`,
+              mentions: [participante],
+            });
+          }
         }
+      } catch (err) {
+        console.log(chalk.red("❌ Error en bienvenida/despedida:"), err);
       }
-    } catch (err) {
-      console.log(chalk.red("❌ Error en bienvenida/despedida:"), err);
-    }
-  });
+    });
+  }
 
   sock.ev.on("messages.upsert", async ({ messages, type }) => {
     if (type !== "notify") return;
@@ -193,7 +198,8 @@ export async function crearBot({
     const contieneLink =
       /(https?:\/\/|chat\.whatsapp\.com|wa\.me\/|www\.)/i.test(body);
 
-    if (esGrupo && contieneLink) {
+    // Antilink solo para bot principal
+    if (!isSubBot && esGrupo && contieneLink) {
       const configGrupo = obtenerConfigGrupo(chatId);
 
       if (configGrupo.antilink) {
@@ -231,6 +237,7 @@ export async function crearBot({
       chatId,
       body,
       allPlugins: plugins,
+      isSubBot, // ← NUEVO: pasar si es sub-bot al contexto
     };
 
     for (const plugin of plugins) {
