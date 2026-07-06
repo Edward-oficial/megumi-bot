@@ -39,6 +39,21 @@ function registrarSubBot(numero, carpetaSesion) {
   fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
 }
 
+function eliminarSesionSubBot(numero) {
+  const sessionFolder = path.join(SUBBOTS_DIR, numero);
+  if (fs.existsSync(sessionFolder)) {
+    fs.rmSync(sessionFolder, { recursive: true, force: true });
+    console.log(chalk.yellow(`🗑️ Sesión eliminada para: ${numero}`));
+  }
+  
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  if (fs.existsSync(registroPath)) {
+    const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+    delete registros[numero];
+    fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+  }
+}
+
 export async function crearSubBot(numero, plugins, avisar) {
   const numeroLimpio = numero.replace(/\D/g, "");
 
@@ -48,7 +63,15 @@ export async function crearSubBot(numero, plugins, avisar) {
   }
 
   const sessionFolder = path.join(SUBBOTS_DIR, numeroLimpio);
+  
+  if (fs.existsSync(sessionFolder)) {
+    fs.rmSync(sessionFolder, { recursive: true, force: true });
+  }
+  
   fs.mkdirSync(sessionFolder, { recursive: true });
+
+  let vinculado = false;
+  let timeoutId = null;
 
   try {
     const sock = await crearBot({
@@ -60,10 +83,20 @@ export async function crearSubBot(numero, plugins, avisar) {
       onPairingCode: async (code) => {
         await avisar(
           `✅ Tu código de vinculación es: *${code}*\n\n` +
-            "Ve a WhatsApp > Dispositivos vinculados > Vincular con número de teléfono, e ingresa el código."
+          "Ve a WhatsApp > Dispositivos vinculados > Vincular con número de teléfono, e ingresa el código.\n\n" +
+          "⏳ Tienes 1 minuto para vincular, si no la sesión será eliminada."
         );
+        
+        timeoutId = setTimeout(() => {
+          if (!vinculado) {
+            eliminarSesionSubBot(numeroLimpio);
+            avisar("⏰ Tiempo agotado. La sesión ha sido eliminada. Vuelve a intentarlo.");
+          }
+        }, 60000);
       },
       onReady: async () => {
+        vinculado = true;
+        if (timeoutId) clearTimeout(timeoutId);
         await avisar("✰ Tu sub-bot ya está conectado y funcionando con todos los comandos.");
         registrarSubBot(numeroLimpio, sessionFolder);
       },
@@ -73,6 +106,7 @@ export async function crearSubBot(numero, plugins, avisar) {
   } catch (err) {
     console.log(chalk.red("❌ Error creando sub-bot:"), err);
     await avisar("✰ Ocurrió un error generando tu sub-bot, intenta de nuevo.");
+    eliminarSesionSubBot(numeroLimpio);
   }
 }
 
