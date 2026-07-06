@@ -6,6 +6,42 @@ import { crearBot } from "./core.js";
 const SUBBOTS_DIR = "./session/subbots";
 const subBotsActivos = new Map();
 
+// Función para listar sub-bots activos desde el registro
+export function listarSubBots() {
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  if (fs.existsSync(registroPath)) {
+    const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+    // Filtrar solo los activos
+    const activos = {};
+    for (const [numero, info] of Object.entries(registros)) {
+      if (info.activo !== false) {
+        activos[numero] = info;
+      }
+    }
+    return activos;
+  }
+  return {};
+}
+
+// Función para registrar sub-bots activos
+function registrarSubBot(numero, carpetaSesion) {
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  let registros = {};
+  
+  if (fs.existsSync(registroPath)) {
+    registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+  }
+  
+  registros[numero] = {
+    carpeta: carpetaSesion,
+    fecha: new Date().toISOString(),
+    activo: true,
+    estado: "conectado"
+  };
+  
+  fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+}
+
 export async function crearSubBot(numero, plugins, avisar) {
   const numeroLimpio = numero.replace(/\D/g, "");
 
@@ -31,6 +67,8 @@ export async function crearSubBot(numero, plugins, avisar) {
       },
       onReady: async () => {
         await avisar("🌑 Tu sub-bot ya está conectado y funcionando con todos los comandos.");
+        // Registrar el sub-bot cuando se conecte
+        registrarSubBot(numeroLimpio, sessionFolder);
       },
     });
 
@@ -59,6 +97,18 @@ export async function reconectarSubBots(plugins) {
       });
       subBotsActivos.set(numero, sock);
       console.log(chalk.magenta(`🔄 Sub-bot reconectado: ${numero}`));
+      
+      // Registrar reconexión
+      const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+      if (fs.existsSync(registroPath)) {
+        const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+        if (registros[numero]) {
+          registros[numero].activo = true;
+          registros[numero].estado = "conectado";
+          registros[numero].ultima_actualizacion = new Date().toISOString();
+          fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+        }
+      }
     } catch (err) {
       console.log(chalk.red(`❌ Error reconectando sub-bot ${numero}:`), err);
     }
