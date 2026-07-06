@@ -43,7 +43,7 @@ function registrarSubBot(numero, carpetaSesion) {
     fecha: new Date().toISOString(),
     activo: true,
     estado: "conectado",
-    nombre: `Sub-Bot ${numero}` // ← Nombre por defecto
+    nombre: `Sub-Bot ${numero}`
   };
   
   fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
@@ -60,6 +60,29 @@ export function actualizarNombreSubBot(numero, nuevoNombre) {
     }
   }
   return false;
+}
+
+function eliminarSubBotCompleto(sessionFolder) {
+  const numero = path.basename(sessionFolder);
+  console.log(chalk.yellow(`🗑️ Eliminando sub-bot: ${numero}`));
+  
+  if (fs.existsSync(sessionFolder)) {
+    fs.rmSync(sessionFolder, { recursive: true, force: true });
+    console.log(chalk.green(`✅ Carpeta eliminada: ${sessionFolder}`));
+  }
+  
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  if (fs.existsSync(registroPath)) {
+    const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+    delete registros[numero];
+    fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+  }
+  
+  if (subBotsActivos.has(numero)) {
+    subBotsActivos.delete(numero);
+  }
+  
+  console.log(chalk.green(`✅ Sub-bot ${numero} eliminado completamente`));
 }
 
 function eliminarSesionSubBot(numero) {
@@ -103,6 +126,7 @@ export async function crearSubBot(numero, plugins, avisar) {
       etiqueta: `SUBBOT-${numeroLimpio}`,
       numeroParaPairing: numeroLimpio,
       isSubBot: true,
+      onDisconnect: eliminarSubBotCompleto,
       onPairingCode: async (code) => {
         await avisar(
           `✅ Tu código de vinculación es: *${code}*\n\n` +
@@ -134,37 +158,6 @@ export async function crearSubBot(numero, plugins, avisar) {
 }
 
 export async function reconectarSubBots(plugins) {
-  if (!fs.existsSync(SUBBOTS_DIR)) return;
-
-  const carpetas = fs.readdirSync(SUBBOTS_DIR);
-
-  for (const numero of carpetas) {
-    const sessionFolder = path.join(SUBBOTS_DIR, numero);
-    const credsPath = path.join(sessionFolder, "creds.json");
-    if (!fs.existsSync(credsPath)) continue;
-
-    try {
-      const sock = await crearBot({
-        sessionFolder,
-        plugins,
-        etiqueta: `SUBBOT-${numero}`,
-        isSubBot: true,
-      });
-      subBotsActivos.set(numero, sock);
-      console.log(chalk.magenta(`🔄 Sub-bot reconectado: ${numero}`));
-      
-      const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
-      if (fs.existsSync(registroPath)) {
-        const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
-        if (registros[numero]) {
-          registros[numero].activo = true;
-          registros[numero].estado = "conectado";
-          registros[numero].ultima_actualizacion = new Date().toISOString();
-          fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
-        }
-      }
-    } catch (err) {
-      console.log(chalk.red(`❌ Error reconectando sub-bot ${numero}:`), err);
-    }
-  }
+  console.log(chalk.yellow(`ℹ️ Los sub-bots se eliminan automáticamente al desconectarse`));
+  return;
 }
