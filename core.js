@@ -27,6 +27,7 @@ export async function crearBot({
   numeroParaPairing = null,
   onPairingCode = null,
   onReady = null,
+  onLoggedOut = null,
   isSubBot = false,
 }) {
   const groupMetadataCache = new Map();
@@ -143,8 +144,12 @@ export async function crearBot({
           numeroParaPairing,
           onPairingCode,
           onReady,
+          onLoggedOut,
           isSubBot,
         });
+      } else {
+        console.log(chalk.yellow(`🔒 [${etiqueta}] Sesión cerrada por el usuario.`));
+        if (onLoggedOut) onLoggedOut();
       }
     } else if (connection === "open") {
       console.log(chalk.greenBright(`🌑 [${etiqueta}] conectado correctamente.`));
