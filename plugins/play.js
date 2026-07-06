@@ -53,11 +53,11 @@ export default {
       await sock.sendMessage(
         chatId,
         { 
-          text: `❀ *${bold("Escribe el nombre de la canción")}*\n\n` +
+          text: `✰ *${bold("Escribe el nombre de la canción")}*\n\n` +
                 `🍃⃨^᪲  ✿⵿ⳋ \`${estilizar("ejemplo")}\` ち ៸៸ ぃ 🍂ᩨ\n` +
-                `> ❄️𝆬ᮬֹּ֢〫ᩙۗ͠𓈃 *play* shape of you\n\n` +
+                `➮ ✰ *play* shape of you\n\n` +
                 `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n` +
-                `> *${config.creator} ×͜×*`
+                `➮ *${config.creator} ×͜×*`
         },
         { quoted: msg }
       );
@@ -69,7 +69,7 @@ export default {
         chatId,
         { 
           text: `🔎 *${bold("Buscando")}* ${bold(query)}...\n` +
-                `> ⏳ Espera un momento...`
+                `➮ ⏳ Espera un momento...`
         },
         { quoted: msg }
       );
@@ -88,8 +88,8 @@ export default {
         await sock.sendMessage(
           chatId,
           { 
-            text: `❌ *${bold("No encontré resultados")}*\n` +
-                  `> Para esa búsqueda: *${query}*`
+            text: `✰ *${bold("No encontré resultados")}*\n` +
+                  `➮ Para esa búsqueda: *${query}*`
           },
           { quoted: msg }
         );
@@ -108,8 +108,8 @@ export default {
         await sock.sendMessage(
           chatId,
           { 
-            text: `❌ *${bold("No pude obtener el audio")}*\n` +
-                  `> Intenta con otra canción.`
+            text: `✰ *${bold("No pude obtener el audio")}*\n` +
+                  `➮ Intenta con otra canción.`
           },
           { quoted: msg }
         );
@@ -125,10 +125,10 @@ export default {
           {
             image: { url: info.thumbnail },
             caption:
-              `❀ *${bold(titulo)}*\n` +
+              `✰ *${bold(titulo)}*\n` +
               `⏱️ *Duración:* ${duracion}\n\n` +
               `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n` +
-              `> *${bold("Enviando audio...")}*`,
+              `➮ *${bold("Enviando audio...")}*`,
           },
           { quoted: msg }
         );
@@ -148,8 +148,8 @@ export default {
       await sock.sendMessage(
         chatId,
         { 
-          text: `❌ *${bold("Ocurrió un error")}*\n` +
-                `> Buscando o descargando la canción.`
+          text: `✰ *${bold("Ocurrió un error")}*\n` +
+                `➮ Buscando o descargando la canción.`
         },
         { quoted: msg }
       );
