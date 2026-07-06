@@ -33,19 +33,19 @@ export function obtenerSubBotInfo(numero) {
 function registrarSubBot(numero, carpetaSesion) {
   const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
   let registros = {};
-  
+
   if (fs.existsSync(registroPath)) {
     registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
   }
-  
+
   registros[numero] = {
     carpeta: carpetaSesion,
     fecha: new Date().toISOString(),
     activo: true,
     estado: "conectado",
-    nombre: `Sub-Bot ${numero}` // ← Nombre por defecto
+    nombre: `Sub-Bot ${numero}`
   };
-  
+
   fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
 }
 
@@ -68,7 +68,7 @@ function eliminarSesionSubBot(numero) {
     fs.rmSync(sessionFolder, { recursive: true, force: true });
     console.log(chalk.yellow(`🗑️ Sesión eliminada para: ${numero}`));
   }
-  
+
   const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
   if (fs.existsSync(registroPath)) {
     const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
@@ -81,16 +81,20 @@ export async function crearSubBot(numero, plugins, avisar) {
   const numeroLimpio = numero.replace(/\D/g, "");
 
   if (subBotsActivos.has(numeroLimpio)) {
-    await avisar("✰ Ese número ya tiene un sub-bot activo.");
-    return;
+    const sockViejo = subBotsActivos.get(numeroLimpio);
+    try {
+      sockViejo.ev.removeAllListeners();
+      await sockViejo.logout();
+    } catch (_) {}
+    subBotsActivos.delete(numeroLimpio);
   }
 
   const sessionFolder = path.join(SUBBOTS_DIR, numeroLimpio);
-  
+
   if (fs.existsSync(sessionFolder)) {
-    fs.rmSync(sessionFolder, { recursive: true, force: true });
+    eliminarSesionSubBot(numeroLimpio);
   }
-  
+
   fs.mkdirSync(sessionFolder, { recursive: true });
 
   let vinculado = false;
@@ -109,9 +113,10 @@ export async function crearSubBot(numero, plugins, avisar) {
           "Ve a WhatsApp > Dispositivos vinculados > Vincular con número de teléfono, e ingresa el código.\n\n" +
           "⏳ Tienes 1 minuto para vincular, si no la sesión será eliminada."
         );
-        
+
         timeoutId = setTimeout(() => {
           if (!vinculado) {
+            subBotsActivos.delete(numeroLimpio);
             eliminarSesionSubBot(numeroLimpio);
             avisar("⏰ Tiempo agotado. La sesión ha sido eliminada. Vuelve a intentarlo.");
           }
@@ -123,12 +128,17 @@ export async function crearSubBot(numero, plugins, avisar) {
         await avisar(`✰ Tu sub-bot *${numeroLimpio}* ya está conectado y funcionando.`);
         registrarSubBot(numeroLimpio, sessionFolder);
       },
+      onLoggedOut: () => {
+        subBotsActivos.delete(numeroLimpio);
+        eliminarSesionSubBot(numeroLimpio);
+      },
     });
 
     subBotsActivos.set(numeroLimpio, sock);
   } catch (err) {
     console.log(chalk.red("❌ Error creando sub-bot:"), err);
     await avisar("✰ Ocurrió un error generando tu sub-bot, intenta de nuevo.");
+    subBotsActivos.delete(numeroLimpio);
     eliminarSesionSubBot(numeroLimpio);
   }
 }
@@ -149,10 +159,14 @@ export async function reconectarSubBots(plugins) {
         plugins,
         etiqueta: `SUBBOT-${numero}`,
         isSubBot: true,
+        onLoggedOut: () => {
+          subBotsActivos.delete(numero);
+          eliminarSesionSubBot(numero);
+        },
       });
       subBotsActivos.set(numero, sock);
       console.log(chalk.magenta(`🔄 Sub-bot reconectado: ${numero}`));
-      
+
       const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
       if (fs.existsSync(registroPath)) {
         const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
