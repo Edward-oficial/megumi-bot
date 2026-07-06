@@ -21,6 +21,15 @@ export function listarSubBots() {
   return {};
 }
 
+export function obtenerSubBotInfo(numero) {
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  if (fs.existsSync(registroPath)) {
+    const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+    return registros[numero] || null;
+  }
+  return null;
+}
+
 function registrarSubBot(numero, carpetaSesion) {
   const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
   let registros = {};
@@ -33,10 +42,24 @@ function registrarSubBot(numero, carpetaSesion) {
     carpeta: carpetaSesion,
     fecha: new Date().toISOString(),
     activo: true,
-    estado: "conectado"
+    estado: "conectado",
+    nombre: `Sub-Bot ${numero}` // ← Nombre por defecto
   };
   
   fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+}
+
+export function actualizarNombreSubBot(numero, nuevoNombre) {
+  const registroPath = path.join(SUBBOTS_DIR, "subbots_registrados.json");
+  if (fs.existsSync(registroPath)) {
+    const registros = JSON.parse(fs.readFileSync(registroPath, "utf-8"));
+    if (registros[numero]) {
+      registros[numero].nombre = nuevoNombre;
+      fs.writeFileSync(registroPath, JSON.stringify(registros, null, 2));
+      return true;
+    }
+  }
+  return false;
 }
 
 function eliminarSesionSubBot(numero) {
@@ -97,7 +120,7 @@ export async function crearSubBot(numero, plugins, avisar) {
       onReady: async () => {
         vinculado = true;
         if (timeoutId) clearTimeout(timeoutId);
-        await avisar("✰ Tu sub-bot ya está conectado y funcionando con todos los comandos.");
+        await avisar(`✰ Tu sub-bot *${numeroLimpio}* ya está conectado y funcionando.`);
         registrarSubBot(numeroLimpio, sessionFolder);
       },
     });
