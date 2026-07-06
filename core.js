@@ -6,6 +6,7 @@ import fs from "fs";
 
 import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
 import { obtenerConfigGrupo } from "./groupSettings.js";
+import { config } from "./config.js";
 
 const {
   default: makeWASocket,
