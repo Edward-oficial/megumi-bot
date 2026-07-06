@@ -3,6 +3,7 @@ import { Boom } from "@hapi/boom";
 import pino from "pino";
 import chalk from "chalk";
 import fs from "fs";
+import path from "path";
 
 import { config } from "./config.js";
 import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
@@ -24,7 +25,8 @@ export async function crearBot({
   numeroParaPairing = null,
   onPairingCode = null,
   onReady = null,
-  isSubBot = false, // ← NUEVO: identificar si es sub-bot
+  isSubBot = false,
+  onDisconnect = null,
 }) {
   const groupMetadataCache = new Map();
 
@@ -105,7 +107,13 @@ export async function crearBot({
       const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-      console.log(chalk.red(`⚠️  [${etiqueta}] Conexión cerrada.`));
+      console.log(chalk.red(`⚠️ [${etiqueta}] Conexión cerrada.`));
+
+      if (isSubBot && onDisconnect) {
+        console.log(chalk.yellow(`🗑️ [${etiqueta}] Eliminando carpeta por desconexión...`));
+        onDisconnect(sessionFolder);
+        return;
+      }
 
       if (shouldReconnect) {
         crearBot({
@@ -117,6 +125,7 @@ export async function crearBot({
           onPairingCode,
           onReady,
           isSubBot,
+          onDisconnect,
         });
       }
     } else if (connection === "open") {
@@ -137,7 +146,6 @@ export async function crearBot({
 
   sock.ev.on("creds.update", saveCreds);
 
-  // Solo activar bienvenidas/despedidas si NO es sub-bot
   if (!isSubBot) {
     sock.ev.on("group-participants.update", async (update) => {
       const { id: chatId, participants, action } = update;
@@ -198,7 +206,6 @@ export async function crearBot({
     const contieneLink =
       /(https?:\/\/|chat\.whatsapp\.com|wa\.me\/|www\.)/i.test(body);
 
-    // Antilink solo para bot principal
     if (!isSubBot && esGrupo && contieneLink) {
       const configGrupo = obtenerConfigGrupo(chatId);
 
@@ -237,7 +244,8 @@ export async function crearBot({
       chatId,
       body,
       allPlugins: plugins,
-      isSubBot, // ← NUEVO: pasar si es sub-bot al contexto
+      isSubBot,
+      sock: sock,
     };
 
     for (const plugin of plugins) {
