@@ -51,9 +51,9 @@ export default {
       await sock.sendMessage(chatId, {
         text: `✰ ${bold("SET NAME")}\n\n` +
               `➮ ${bold("Uso correcto:")}\n` +
-              `> ${estilizar("setname <nuevo nombre>")}\n\n` +
+              `➮ ${estilizar("setname <nuevo nombre>")}\n\n` +
               `➮ ${bold("Ejemplo:")}\n` +
-              `> setname Mi Sub-Bot`
+              `➮ setname Mi Sub-Bot`
       }, { quoted: msg });
       return;
     }
@@ -71,7 +71,7 @@ export default {
         text: `✰ ${bold("Nombre actualizado")}\n` +
               `➮ Nuevo nombre: ${bold(nombreNuevo)}\n` +
               `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n` +
-              `> ${config.creator} ×͜×`
+              `➮ ${config.creator} ×͜×`
       }, { quoted: msg });
 
     } catch (err) {
