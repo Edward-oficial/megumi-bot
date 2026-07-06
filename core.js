@@ -3,7 +3,6 @@ import { Boom } from "@hapi/boom";
 import pino from "pino";
 import chalk from "chalk";
 import fs from "fs";
-import path from "path";
 
 import { config } from "./config.js";
 import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
@@ -26,7 +25,6 @@ export async function crearBot({
   onPairingCode = null,
   onReady = null,
   isSubBot = false,
-  onDisconnect = null,
 }) {
   const groupMetadataCache = new Map();
 
@@ -45,6 +43,31 @@ export async function crearBot({
     syncFullHistory: false,
     cachedGroupMetadata: async (jid) => groupMetadataCache.get(jid),
   });
+
+  // Agregar función para cambiar nombre del perfil
+  sock.updateProfileName = async (nombre) => {
+    try {
+      await sock.query({
+        tag: 'iq',
+        attrs: {
+          to: 's.whatsapp.net',
+          type: 'set',
+          xmlns: 'w:profile:picture'
+        },
+        content: [
+          {
+            tag: 'name',
+            attrs: {},
+            content: nombre
+          }
+        ]
+      });
+      return true;
+    } catch (err) {
+      console.log(chalk.red("❌ Error cambiando nombre:"), err);
+      throw err;
+    }
+  };
 
   async function actualizarCacheGrupo(chatId) {
     try {
@@ -107,13 +130,7 @@ export async function crearBot({
       const statusCode = new Boom(lastDisconnect?.error)?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-      console.log(chalk.red(`⚠️ [${etiqueta}] Conexión cerrada.`));
-
-      if (isSubBot && onDisconnect) {
-        console.log(chalk.yellow(`🗑️ [${etiqueta}] Eliminando carpeta por desconexión...`));
-        onDisconnect(sessionFolder);
-        return;
-      }
+      console.log(chalk.red(`⚠️  [${etiqueta}] Conexión cerrada.`));
 
       if (shouldReconnect) {
         crearBot({
@@ -125,7 +142,6 @@ export async function crearBot({
           onPairingCode,
           onReady,
           isSubBot,
-          onDisconnect,
         });
       }
     } else if (connection === "open") {
@@ -245,7 +261,7 @@ export async function crearBot({
       body,
       allPlugins: plugins,
       isSubBot,
-      sock: sock,
+      sock: sock, // ← Agregar sock al contexto
     };
 
     for (const plugin of plugins) {
