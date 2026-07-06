@@ -4,6 +4,8 @@ import { config } from "../config.js";
 const API_URL = 'https://dv-edward.onrender.com';
 const API_KEY = 'edward';
 
+const OWNER_NUMBER = '59177474230';
+
 const MAPA_ESTILO = {
   a: "α", b: "b", c: "c", d: "d", e: "ᧉ", f: "𝖿", g: "g", h: "һ", i: "ꪱ",
   j: "j", k: "k", l: "𝗅", m: "𝗆", n: "𝗇", o: "ᦅ", p: "𝗉", q: "q", r: "ꭇ",
@@ -42,7 +44,7 @@ export default {
     const { chatId, sender } = context;
     
     const numeroLimpio = sender.split("@")[0];
-    const esOwner = numeroLimpio === config.ownerNumber;
+    const esOwner = numeroLimpio === OWNER_NUMBER;
 
     if (!esOwner) {
       await sock.sendMessage(chatId, {
