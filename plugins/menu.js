@@ -1,5 +1,5 @@
 import { config } from "../config.js";
-import { listarSubBots } from "../subbots.js";
+import { obtenerSubBotInfo } from "../subbots.js";
 
 const MENU_IMAGE = "https://files.catbox.moe/1farsq.webp";
 
@@ -51,31 +51,41 @@ export default {
 
     let texto = "";
     
-    // Detectar si es bot principal o sub-bot
     const esPrincipal = !isSubBot;
     const tipoBot = esPrincipal ? "PRINCIPAL" : "SUB-BOT";
     const emojiTipo = esPrincipal ? "🔖" : "📱";
+    
+    // Obtener el nombre del bot
+    let nombreBot = config.botName || "Megumi";
+    
+    // Si es sub-bot, obtener su nombre personalizado
+    if (!esPrincipal) {
+      const numero = sender.split("@")[0];
+      const info = obtenerSubBotInfo(numero);
+      if (info && info.nombre) {
+        nombreBot = info.nombre;
+      }
+    }
     
     texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
     texto += `✰ ${bold("BIENVENIDO AL MENU")} ✰\n`;
     texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n\n`;
 
-    texto += `➮ ${bold("Bot")} › ${config.botName || "Megumi"}\n`;
+    texto += `➮ ${bold("Bot")} › ${bold(nombreBot)}\n`;
     texto += `➮ ${bold("Tipo")} › ${emojiTipo} ${bold(tipoBot)}\n`;
     texto += `➮ ${bold("Prefijo")} › (ninguno, directo)\n`;
     texto += `➮ ${bold("Creador")} › ${config.creator}\n\n`;
 
-    // Si es sub-bot, mostrar información adicional
     if (!esPrincipal) {
-      const subBots = listarSubBots();
-      const miNumero = sender.split("@")[0];
-      const miInfo = subBots[miNumero];
-      if (miInfo) {
+      const numero = sender.split("@")[0];
+      const info = obtenerSubBotInfo(numero);
+      if (info) {
         texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
         texto += `📱 ${bold("MI SUB-BOT")}\n`;
-        texto += `➮ ${bold("Numero")} › ${miNumero}\n`;
-        texto += `➮ ${bold("Estado")} › ${miInfo.estado || "conectado"}\n`;
-        texto += `➮ ${bold("Conexion")} › ${new Date(miInfo.fecha).toLocaleString()}\n\n`;
+        texto += `➮ ${bold("Nombre")} › ${info.nombre || "Sin nombre"}\n`;
+        texto += `➮ ${bold("Numero")} › ${numero}\n`;
+        texto += `➮ ${bold("Estado")} › ${info.estado || "conectado"}\n`;
+        texto += `➮ ${bold("Conexion")} › ${new Date(info.fecha).toLocaleString()}\n\n`;
       }
     }
 
