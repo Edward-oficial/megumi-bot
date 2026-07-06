@@ -4,9 +4,12 @@ import { obtenerSubBotInfo } from "../subbots.js";
 const MENU_IMAGE = "https://files.catbox.moe/1farsq.webp";
 
 const MAPA_ESTILO = {
-  a: "α", b: "b", c: "c", d: "d", e: "ᧉ", f: "𝖿", g: "g", h: "һ", i: "ꪱ",
-  j: "j", k: "k", l: "𝗅", m: "𝗆", n: "𝗇", o: "ᦅ", p: "𝗉", q: "q", r: "ꭇ",
-  s: "𝗌", t: "ƚ", u: "𝗎", v: "v", w: "w", x: "x", y: "ᥡ", z: "z",
+  a: "α", b: "ᑲ", c: "ᥴ", d: "ᑯ", e: "ᧉ", f: "𝖿", g: "ɠ", h: "һ", i: "ꪱ",
+  j: "ȷ", k: "𝗄", l: "𝗅", m: "𝗆", n: "𝗇", o: "ᦅ", p: "𝗉", q: "𝗊", r: "ꭇ",
+  s: "𝗌", t: "ƚ", u: "𝗎", v: "᥎", w: "𝗐", x: "᥊", y: "ᥡ", z: "ƶ",
+  A: "Α", B: "ᗷ", C: "ᑕ", D: "ᗪ", E: "ᗴ", F: "𝖥", G: "Ꮐ", H: "Η", I: "ꪱ",
+  J: "ᒍ", K: "𝖪", L: "ᒪ", M: "ᗰ", N: "Ν", O: "ᦅ", P: "𝗉", Q: "𝗊", R: "ᖇ",
+  S: "𝗌", T: "Ƭ", U: "Ս", V: "ᐯ", W: "᭙", X: "᙭", Y: "Ꭹ", Z: "Ƶ",
 };
 
 function estilizar(texto) {
@@ -17,20 +20,8 @@ function estilizar(texto) {
     .join("");
 }
 
-const MAPA_BOLD = {
-  a: "𝗮", b: "𝗯", c: "𝗰", d: "𝗱", e: "𝗲", f: "𝗳", g: "𝗴", h: "𝗵", i: "𝗶",
-  j: "𝗷", k: "𝗸", l: "𝗹", m: "𝗺", n: "𝗻", o: "𝗼", p: "𝗽", q: "𝗾", r: "𝗿",
-  s: "𝘀", t: "𝘁", u: "𝘂", v: "𝘃", w: "𝘄", x: "𝘅", y: "𝘆", z: "𝘇",
-  A: "𝗔", B: "𝗕", C: "𝗖", D: "𝗗", E: "𝗘", F: "𝗙", G: "𝗚", H: "𝗛", I: "𝗜",
-  J: "𝗝", K: "𝗞", L: "𝗟", M: "𝗠", N: "𝗡", O: "𝗢", P: "𝗣", Q: "𝗤", R: "𝗥",
-  S: "𝗦", T: "𝗧", U: "𝗨", V: "𝗩", W: "𝗪", X: "𝗫", Y: "𝗬", Z: "𝗭",
-};
-
 function bold(texto) {
-  return String(texto)
-    .split("")
-    .map((c) => MAPA_BOLD[c] || c)
-    .join("");
+  return `*${texto}*`;
 }
 
 export default {
@@ -52,13 +43,10 @@ export default {
     let texto = "";
     
     const esPrincipal = !isSubBot;
-    const tipoBot = esPrincipal ? "PRINCIPAL" : "SUB-BOT";
-    const emojiTipo = esPrincipal ? "🔖" : "📱";
+    const tipoBot = esPrincipal ? "𝗉𝗋ᧉ𝗆ꪱ𝗎𝗆" : "𝗌𝗎𝖻-𝖻ᦅƚ";
     
-    // Obtener el nombre del bot
     let nombreBot = config.botName || "Megumi";
     
-    // Si es sub-bot, obtener su nombre personalizado
     if (!esPrincipal) {
       const numero = sender.split("@")[0];
       const info = obtenerSubBotInfo(numero);
@@ -67,37 +55,23 @@ export default {
       }
     }
     
+    texto += `✰ ${bold("𝗕𝗶𝗲𝗻𝘃𝗲𝗻𝗶𝗱𝗼 𝗮𝗹 𝗺𝗲𝗻𝘂")}\n\n`;
+    texto += "`ਂ ๋ ݀✰✰ ׅ ۬🅔𝗻𝗹𝗮𝗰𝗲𝘀ׄ ٜ ۬ ় ۬ ׅ ׅ`\n\n";
+    texto += `⢷ ❄️᮫᪲  *API › https://dv-edward.onrender.com/*\n\n`;
+    texto += "╰  ̇   ꯭̊┉꯭ᩴ  ꯭ ᪲━꯭̊ᩴ┉꯭ꤦ  ̇̊  ꯭ ᩴ─꤫ꤦ  ͜ ᩙ  ̇͜⣾᪲\n";
+    texto += "`ਂ ๋ ݀✰✰ ׅ ۬🅘𝗻𝗳𝗼 ٜ ۬ ় ۬ ׅ ׅ`\n\n";
+    texto += `⢷ ❄️᮫᪲  *Bot › ${bold(nombreBot)}*\n`;
+    texto += `⢷ ❄️᮫᪲  *Prefijo › (ninguno, directo)*\n`;
+    texto += `⢷ ❄️᮫᪲  *Tipo › ${bold(tipoBot)}*\n\n`;
     texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
-    texto += `✰ ${bold("BIENVENIDO AL MENU")} ✰\n`;
-    texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n\n`;
-
-    texto += `➮ ${bold("Bot")} › ${bold(nombreBot)}\n`;
-    texto += `➮ ${bold("Tipo")} › ${emojiTipo} ${bold(tipoBot)}\n`;
-    texto += `➮ ${bold("Prefijo")} › (ninguno, directo)\n`;
-    texto += `➮ ${bold("Creador")} › ${config.creator}\n\n`;
-
-    if (!esPrincipal) {
-      const numero = sender.split("@")[0];
-      const info = obtenerSubBotInfo(numero);
-      if (info) {
-        texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
-        texto += `📱 ${bold("MI SUB-BOT")}\n`;
-        texto += `➮ ${bold("Nombre")} › ${info.nombre || "Sin nombre"}\n`;
-        texto += `➮ ${bold("Numero")} › ${numero}\n`;
-        texto += `➮ ${bold("Estado")} › ${info.estado || "conectado"}\n`;
-        texto += `➮ ${bold("Conexion")} › ${new Date(info.fecha).toLocaleString()}\n\n`;
-      }
-    }
-
-    texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
-    texto += `> ${bold("Disfruta de este nuevo proyecto")} ฅ⁠^⁠•⁠ﻌ⁠•⁠^⁠ฅ\n`;
+    texto += `> *Disfruta de este nuevo proyecto ฅ⁠^⁠•⁠ﻌ⁠•⁠^⁠ฅ*\n`;
 
     for (const categoria of nombresCategorias) {
-      texto += `\n🍃⃨^᪲  ✿⵿ⳋ ${estilizar(categoria)} ち ៸៸ ぃ 🍂ᩨ\n`;
+      texto += `\n🍃⃨^᪲  ✰⵿ⳋ \`${estilizar(categoria)}\` ち ៸៸ ぃ 🍂ᩨ\n`;
 
       for (const plugin of categorias[categoria]) {
-        texto += `\n❄️𝆬ᮬֹּ֢〫ᩙۗ͠𓈃 ${plugin.command.join(" ")}\n`;
-        texto += `> ${bold(plugin.description || "Sin descripcion")}\n`;
+        texto += `\n❄️𝆬ᮬֹּ֢〫ᩙۗ͠𓈃 ${plugin.command.join(" ")}\n`;
+        texto += `> *» ${bold(plugin.description || "Sin descripcion")}*\n`;
       }
     }
 
@@ -110,5 +84,5 @@ export default {
       },
       { quoted: msg }
     );
-  },
+  }
 };
