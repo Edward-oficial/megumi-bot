@@ -4,7 +4,6 @@ import pino from "pino";
 import chalk from "chalk";
 import fs from "fs";
 
-import { config } from "./config.js";
 import { pasaFiltros, esAdminDeGrupo } from "./middlewares.js";
 import { obtenerConfigGrupo } from "./groupSettings.js";
 
@@ -15,6 +14,9 @@ const {
   DisconnectReason,
   Browsers,
 } = baileysPkg;
+
+const BOT_NAME = "𝗌ƚαꭇ𝗅ꪱ𝗇ɠ𝗌 ᦅ𝖿𝖿ꪱᥴꪱα𝗅";
+const NEWSLETTER_JID = "120363407253203904@newsletter";
 
 export async function crearBot({
   sessionFolder,
@@ -44,7 +46,6 @@ export async function crearBot({
     cachedGroupMetadata: async (jid) => groupMetadataCache.get(jid),
   });
 
-  // Agregar función para cambiar nombre del perfil
   sock.updateProfileName = async (nombre) => {
     try {
       await sock.query({
@@ -100,8 +101,8 @@ export async function crearBot({
       forwardingScore: 999,
       isForwarded: true,
       forwardedNewsletterMessageInfo: {
-        newsletterJid: "120363407253203904@newsletter",
-        newsletterName: config.botName,
+        newsletterJid: NEWSLETTER_JID,
+        newsletterName: BOT_NAME,
         serverMessageId: 143,
       },
     };
@@ -261,7 +262,7 @@ export async function crearBot({
       body,
       allPlugins: plugins,
       isSubBot,
-      sock: sock, // ← Agregar sock al contexto
+      sock: sock,
     };
 
     for (const plugin of plugins) {
