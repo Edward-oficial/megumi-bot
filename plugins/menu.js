@@ -1,4 +1,5 @@
 import { config } from "../config.js";
+import { listarSubBots } from "../subbots.js";
 
 const MENU_IMAGE = "https://files.catbox.moe/1farsq.webp";
 
@@ -38,7 +39,7 @@ export default {
   description: "Muestra el menú de comandos ordenado por categorías.",
   noRegister: true,
   run: async (sock, msg, args, context) => {
-    const { chatId, sender, allPlugins } = context;
+    const { chatId, sender, allPlugins, isSubBot } = context;
 
     const categorias = {};
     for (const plugin of allPlugins) {
@@ -49,22 +50,44 @@ export default {
     const nombresCategorias = Object.keys(categorias).sort();
 
     let texto = "";
-    texto += `ツ${config.creator}×͜× *${bold("Bienvenido a mi menu completo")}*\n\n`;
+    
+    // Detectar si es bot principal o sub-bot
+    const esPrincipal = !isSubBot;
+    const tipoBot = esPrincipal ? "PRINCIPAL" : "SUB-BOT";
+    const emojiTipo = esPrincipal ? "🔖" : "📱";
+    
+    texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
+    texto += `✰ ${bold("BIENVENIDO AL MENU")} ✰\n`;
+    texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n\n`;
 
-    texto += "`ਂ ๋ ݀✰✰ ׅ ۬🅘𝗻𝗳𝗼 ٜ ۬ ় ۬ ׅ ׅ`\n\n";
-    texto += `花 ⢷ 🌑᮫᪲  *Bot › ${config.botName}*\n`;
-    texto += `花 ⢷ 🌑᮫᪲  *Prefijo › (ninguno, directo)*\n`;
-    texto += `花 ⢷ 🌑᮫᪲  *Creador › ${config.creator}*\n\n`;
+    texto += `➮ ${bold("Bot")} › ${config.botName || "Megumi"}\n`;
+    texto += `➮ ${bold("Tipo")} › ${emojiTipo} ${bold(tipoBot)}\n`;
+    texto += `➮ ${bold("Prefijo")} › (ninguno, directo)\n`;
+    texto += `➮ ${bold("Creador")} › ${config.creator}\n\n`;
 
-    texto += "╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n";
-    texto += "> *Disfruta de este nuevo proyecto ฅ⁠^⁠•⁠ﻌ⁠•⁠^⁠ฅ*\n";
+    // Si es sub-bot, mostrar información adicional
+    if (!esPrincipal) {
+      const subBots = listarSubBots();
+      const miNumero = sender.split("@")[0];
+      const miInfo = subBots[miNumero];
+      if (miInfo) {
+        texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
+        texto += `📱 ${bold("MI SUB-BOT")}\n`;
+        texto += `➮ ${bold("Numero")} › ${miNumero}\n`;
+        texto += `➮ ${bold("Estado")} › ${miInfo.estado || "conectado"}\n`;
+        texto += `➮ ${bold("Conexion")} › ${new Date(miInfo.fecha).toLocaleString()}\n\n`;
+      }
+    }
+
+    texto += `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼\n`;
+    texto += `> ${bold("Disfruta de este nuevo proyecto")} ฅ⁠^⁠•⁠ﻌ⁠•⁠^⁠ฅ\n`;
 
     for (const categoria of nombresCategorias) {
-      texto += `\n🍃⃨^᪲  ✿⵿ⳋ \`${estilizar(categoria)}\` ち ៸៸ ぃ 🍂ᩨ\n`;
+      texto += `\n🍃⃨^᪲  ✿⵿ⳋ ${estilizar(categoria)} ち ៸៸ ぃ 🍂ᩨ\n`;
 
       for (const plugin of categorias[categoria]) {
         texto += `\n❄️𝆬ᮬֹּ֢〫ᩙۗ͠𓈃 ${plugin.command.join(" ")}\n`;
-        texto += `> *» ${plugin.description || "Sin descripción"}*\n`;
+        texto += `> ${bold(plugin.description || "Sin descripcion")}\n`;
       }
     }
 
