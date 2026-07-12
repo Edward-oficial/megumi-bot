@@ -16,8 +16,8 @@ const {
   Browsers,
 } = baileysPkg;
 
-const BOT_NAME = "𝗌ƚαꭇ𝗅ꪱ𝗇ɠ𝗌 ᦅ𝖿𝖿ꪱᥴꪱα𝗅";
-const NEWSLETTER_JID = "120363407253203904@newsletter";
+const BOT_NAME = "𝗌ƚαꭇ𝗅ꪱ𝗇ɠ ƚᧉα𝗆";
+const NEWSLETTER_JID = "120363411173569932@newsletter";
 
 export async function crearBot({
   sessionFolder,
