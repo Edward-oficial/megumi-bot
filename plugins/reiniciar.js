@@ -1,6 +1,9 @@
-import { config } from "../config.js";
+import { exec } from "child_process";
+import { promisify } from "util";
 
+const execAsync = promisify(exec);
 const OWNER_NUMBER = "59177474230";
+const PROCESS_NAME = "megumi"; // Cambia esto por el nombre de tu proceso en PM2
 
 const MAPA_ESTILO = {
   a: "α", b: "ᑲ", c: "ᥴ", d: "ᑯ", e: "ᧉ", f: "𝖿", g: "ɠ", h: "һ", i: "ꪱ",
@@ -26,7 +29,7 @@ function bold(texto) {
 export default {
   command: ["reiniciar", "restart", "reboot"],
   category: "Owner",
-  description: "Reinicia el bot (solo owner)",
+  description: "Reinicia el bot con PM2 (solo owner)",
   run: async (sock, msg, args, context) => {
     const { chatId, sender } = context;
     
@@ -42,11 +45,23 @@ export default {
 
     await sock.sendMessage(chatId, {
       text: `✰ ${bold("Reiniciando el bot")}\n` +
-            `> ${estilizar("el bot se reiniciará en 3 segundos")}...`
+            `> ${estilizar("el bot se reiniciará con PM2")}...`
     }, { quoted: msg });
 
-    setTimeout(() => {
-      process.exit(0);
-    }, 3000);
+    try {
+      // Reiniciar con PM2
+      await execAsync(`pm2 restart ${PROCESS_NAME}`);
+      
+      await sock.sendMessage(chatId, {
+        text: `✰ ${bold("Bot reiniciado")}\n` +
+              `> ${estilizar("el bot se ha reiniciado correctamente")}`
+      }, { quoted: msg });
+    } catch (err) {
+      console.log("❌ Error en reiniciar:", err);
+      await sock.sendMessage(chatId, {
+        text: `✰ ${bold("Error al reiniciar")}\n` +
+              `> ${estilizar(err.message || "intenta de nuevo")}`
+      }, { quoted: msg });
+    }
   }
 };
