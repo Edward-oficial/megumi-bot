@@ -1,0 +1,51 @@
+const OWNER_NUMBER = "59177474230";
+const OWNER_NAME = "Edward";
+const BOT_NAME = "Megumi";
+const CHANNEL = "https://whatsapp.com/channel/0029VbCfln4Lo4hl3MM9J43e";
+
+const MAPA_ESTILO = {
+  a: "α", b: "ᑲ", c: "ᥴ", d: "ᑯ", e: "ᧉ", f: "𝖿", g: "ɠ", h: "һ", i: "ꪱ",
+  j: "ȷ", k: "𝗄", l: "𝗅", m: "𝗆", n: "𝗇", o: "ᦅ", p: "𝗉", q: "𝗊", r: "ꭇ",
+  s: "𝗌", t: "ƚ", u: "𝗎", v: "᥎", w: "𝗐", x: "᥊", y: "ᥡ", z: "ƶ",
+  A: "Α", B: "ᗷ", C: "ᑕ", D: "ᗪ", E: "ᗴ", F: "𝖥", G: "Ꮐ", H: "Η", I: "ꪱ",
+  J: "ᒍ", K: "𝖪", L: "ᒪ", M: "ᗰ", N: "Ν", O: "ᦅ", P: "𝗉", Q: "𝗊", R: "ᖇ",
+  S: "𝗌", T: "Ƭ", U: "Ս", V: "ᐯ", W: "᭙", X: "᙭", Y: "Ꭹ", Z: "Ƶ",
+};
+
+function estilizar(texto) {
+  return String(texto)
+    .toLowerCase()
+    .split("")
+    .map((c) => MAPA_ESTILO[c] || c)
+    .join("");
+}
+
+function bold(texto) {
+  return `*${texto}*`;
+}
+
+export default {
+  command: ["creador", "owner", "dueño", "info"],
+  category: "General",
+  description: "Muestra información del creador del bot",
+  run: async (sock, msg, args, context) => {
+    const { chatId } = context;
+
+    const card = `╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼
+✰ ${bold("INFORMACION DEL CREADOR")} ✰
+╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼
+
+${bold("Nombre")} › ${OWNER_NAME}
+${bold("Numero")} › ${OWNER_NUMBER}
+${bold("Bot")} › ${BOT_NAME}
+${bold("Canal")} › ${CHANNEL}
+
+╾ׄ𖹭ִ╼ᮀ✿ִ╾ᜒ𖹭╼ִ✿╾᩿ׄ𖹭╼ִ✿╾ᮀ𖹭ִ╼ᜒ✿ִ╾ׄ𖹭᩿╼
+> ${estilizar("gracias por usar el bot")}`;
+
+    await sock.sendMessage(chatId, {
+      text: card,
+      mentions: [`${OWNER_NUMBER}@s.whatsapp.net`]
+    }, { quoted: msg });
+  }
+};
